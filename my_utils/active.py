@@ -12,6 +12,23 @@ from targetMatch import img_Match
 import cv2
 
 
+def slide_press(x1, y1, x2, y2, press_time):
+    """
+
+    :param x1: 点击的x1坐标
+    :param y1: 点击的y1坐标
+    :param x2: 点击的x2坐标
+    :param y2: 点击的y2坐标
+    :param press_time: 按住时间(ms)
+    :return: 执行为真
+    """
+    result = execute_cmd([adb, 'shell', 'input', 'swipe', f'{x1}', f'{y1}', f'{x2}', f'{y2}', f'{press_time}'], 'press')
+    if result.returncode == 0:
+        return True
+    else:
+        return False
+
+
 def click(x, y):
     """
 

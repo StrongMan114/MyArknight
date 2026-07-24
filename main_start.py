@@ -27,10 +27,31 @@ logging.disable(logging.DEBUG)  # 关闭DEBUG日志的打印
 logging.disable(logging.WARNING)  # 关闭WARNING日志的打印
 
 
-def is_fuzzy_match(name, level_names, cutoff=0.6):
+def is_fuzzy_match(name, level_names, cutoff=0.75):
     """是否模糊匹配到作战列表中的某一项"""
     match = difflib.get_close_matches(name, level_names, n=1, cutoff=cutoff)
     return len(match) > 0
+
+
+# def ocr_process(creat_ocr, img, word_target: str):
+#     """
+#     :param creat_ocr: OCR模型
+#     :param img: 要识别的图片
+#     :param word_target: 目标文字
+#     :return: 若识别到返回True和文字矩形框4个角的坐标，未识别到返回False和空列表
+#     """
+#     word = creat_ocr.ocr(img, cls=True)  # word[0] = [[坐标],[坐标]...]，("识别文字",识别准确率)]
+#
+#     coordinate = []
+#     if word and word[0] is not None:
+#         for i in word[0]:
+#             print(i)
+#         for line in word[0]:  # print(line[0], line[1][0], line[1][1])
+#             if word_target == line[1][0]:  # line[1][0] 为"识别文字"
+#                 return True, line[0]
+#             elif is_fuzzy_match(word_target, [line[1][0]]):
+#                 return True, line[0]
+#     return False, coordinate
 
 
 def ocr_process(creat_ocr, img, word_target: str):
@@ -40,15 +61,19 @@ def ocr_process(creat_ocr, img, word_target: str):
     :param word_target: 目标文字
     :return: 若识别到返回True和文字矩形框4个角的坐标，未识别到返回False和空列表
     """
-    word = creat_ocr.ocr(img, cls=True)  # word[0] = [[坐标],[坐标]...]，("识别文字",识别准确率)]
+    word = creat_ocr.ocr(img, cls=True)
 
     coordinate = []
     if word and word[0] is not None:
-        for line in word[0]:  # print(line[0], line[1][0], line[1][1])
-            if word_target == line[1][0]:  # line[1][0] 为"识别文字"
-                return True, line[0]
-            elif is_fuzzy_match(word_target, [line[1][0]]):
-                return True, line[0]
+        # 三级匹配cutoff值，从高到低
+        cutoff_levels = [0.93, 0.84, 0.78]
+        # 三级模糊匹配，每级遍历所有数据
+        for cutoff in cutoff_levels:
+            for line in word[0]:
+                recognized_text = line[1][0]
+                if is_fuzzy_match(word_target, [recognized_text], cutoff):
+                    print(f'模糊匹配成功: {recognized_text} -> {word_target}, cutoff={cutoff}')
+                    return True, line[0]
     return False, coordinate
 
 
@@ -172,7 +197,8 @@ if __name__ == '__main__':
     """
       打开要打的关卡，右下角有代理指挥和开始作战的界面，然后启动程序，设置好min_day_threshold与max_total_use
     """
-    level = '1 - 7'
+    # level = '1 - 7'
+    level = 'AD-7'
     # 优先使用临期道具，若道具剩余时间小于min_day_threshold则全部用掉,测试时min_day_threshold = 0；max_total_use = 100
     min_day_threshold = 3  # 理智药天数，剩余时间大于这个数值的理智药不会使用 min_day_threshold以下都为临期道具
     max_total_use = 22  # 最后剩余的理智药数量 剩余的在max_total_use以上才会继续运行

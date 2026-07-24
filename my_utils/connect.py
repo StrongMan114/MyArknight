@@ -10,6 +10,7 @@ import subprocess
 import os
 import time
 import cv2
+import numpy as np
 
 portList = [16384, 16416, 16448, 16480, 16512, 16544, 16576]
 adb = r'D:\MuMuPlayer-12.0\nx_device\12.0\shell\adb.exe'
@@ -125,7 +126,7 @@ def screen_shot_local(path: str = r'E:\bishe\learn\MyArknights\opencv\image\scre
     return screen_picture
 
 
-def screen_shot(local_path: str = 'image/screen.png', read=0):
+def screen_shot_local(local_path: str = 'rogue/aaa.png', read=0):
     device_serial = 'emulator-5554'
     remote_path = '/sdcard/screen.png'
     # local_path = r'E:\bishe\learn\MyArknights\opencv\image\screen.png'
@@ -168,6 +169,35 @@ def screen_shot(local_path: str = 'image/screen.png', read=0):
     except Exception as e:
         print(f"发生错误: {e}")
         return None
+
+
+def screen_shot(local_path: str = None, read=cv2.IMREAD_COLOR):
+    """
+    :param local_path: None
+    :param read: CV2读取方式，默认cv2.IMREAD_COLOR
+    :return: 截图图片，cv格式
+    """
+
+    result = subprocess.run(
+        [
+            adb,
+            "-s",
+            "emulator-5554",
+            "exec-out",
+            "screencap",
+            "-p"
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+
+    if result.returncode != 0:
+        return None
+
+    img = np.frombuffer(result.stdout, np.uint8)
+    img = cv2.imdecode(img, read)
+
+    return img
 
 
 if __name__ == '__main__':

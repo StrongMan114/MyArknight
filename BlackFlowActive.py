@@ -30,7 +30,7 @@ import jieGarden_active
 
 FOOT_EQUIPMENT_COORD = [1720, 150]  # 行动力坐标
 BLANK_AREA_COORD_MAP = [100, 540]  # 地图空白区域坐标
-BLANK_AREA_COORD_EVENT = [1000, 50]  # 事件空白区域坐标
+BLANK_AREA_COORD_EVENT = [1500, 50]  # 事件空白区域坐标
 EVENT_COORD_BIAS = [100, 50]  # 事件点击坐标偏置
 ENTER_COORD_BIAS = [0, 30]  # 事件确认坐标偏置
 
@@ -49,7 +49,7 @@ def character_slide():
     手势为向左滑动屏幕，寻找右边的分队，分辨率1920*1080
     :return:
     """
-    active.slide_press(1720, 540, 1000, 540, 2000)
+    active.slide_press(1720, 540, 1100, 540, 2000)
     time.sleep(2)
 
 
@@ -68,15 +68,18 @@ def start(ocr, menu, team, slide_team=True):
         if flag1:
             break
 
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         flag, cor0 = main_start.ocr_process(ocr, img_origin, menu)  # 主界面寻找开始位置
         cor0 = targetMatch.find_center_coordinate(cor0)
         active.click(cor0[0], cor0[1])  # 主界面寻找开始
         time.sleep(1)  # 等待进入分队选择
 
         while not flag1:
-            img_origin = connect.screen_shot(r'rogue/aaa.png')
+            img_origin = connect.screen_shot()
             flag1, _ = main_start.ocr_process(ocr, img_origin, '选择分队')
+
+    del img_origin
+    gc.collect()
 
     if slide_team:  # 滑动界面
         normal_slide()  # 滑动寻找目标分队
@@ -92,7 +95,7 @@ def start(ocr, menu, team, slide_team=True):
     cor1 = targetMatch.find_center_coordinate(cor1)
     time.sleep(0.5)
 
-    del img_origin
+    del select_team_img
     gc.collect()
 
     return cor1
@@ -108,7 +111,7 @@ def select_ticket(enter_img, ocr, tick_name):
     print(f'寻找<{tick_name}>组合')
     flag = False
     while not flag:
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         flag, _ = main_start.ocr_process(ocr, img_origin, '你确定要这么做')  # 保证有对号后退出
         if flag:
             break
@@ -120,9 +123,13 @@ def select_ticket(enter_img, ocr, tick_name):
             active.click(cor0[0], cor0[1])  # 点击确认组合
         time.sleep(1)
 
+    del img_origin
+    gc.collect()
+
     flag = False
     while not flag:
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
+        print('查找是否为初始招募界面，招募券*3')
         flag, _ = main_start.ocr_process(ocr, img_origin, '初始招募')  # 保证有对号后退出
         if flag:
             break
@@ -135,6 +142,9 @@ def select_ticket(enter_img, ocr, tick_name):
             time.sleep(1)
         else:
             print('未找到招募券确认按钮')
+
+    del img_origin
+    gc.collect()
 
 
 def match_recruit_buttons(creat_ocr):
@@ -207,33 +217,51 @@ def handle_heavy(recruit_cor, ocr_model):
     active.click(recruit_cor[0], recruit_cor[1])  # 点击确认招募券
     flag = False  # 检查是否进入干员选择界面
     while not flag:
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         flag, cor = main_start.ocr_process(ocr_model, img_origin, '选择助战')
         if flag:
             break
         time.sleep(2)
 
-    print('向右滑动')
-    character_slide()
+    del img_origin
+    gc.collect()
 
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
-    flag, cor = main_start.ocr_process(ocr_model, img_origin, '机械师')
-    center = targetMatch.find_center_coordinate(cor)
-    active.click(center[0]-30, center[1]-20)  # 点击干员
+    flag_p = False  # 检查是否进入干员选择界面
+    while not flag_p:
+        img_origin = connect.screen_shot()
+        flag_p, cor = main_start.ocr_process(ocr_model, img_origin, '机械师')
+        if flag_p:
+            print('选择干员')
+            center = targetMatch.find_center_coordinate(cor)
+            active.click(center[0]-30, center[1]-20)  # 点击干员
+            break
+        else:
+            print('没找到目标角色, 向右滑动')
+            character_slide()
+            time.sleep(1)
     time.sleep(0.5)
+    del img_origin
+    gc.collect()
 
+    img_origin = connect.screen_shot()
     flag, cor2 = main_start.ocr_process(ocr_model, img_origin, '确认招募')  # 招募干员
     center2 = targetMatch.find_center_coordinate(cor2)
     active.click(center2[0], center2[1])
     time.sleep(0.5)
 
+    del img_origin
+    gc.collect()
+
     button_flag = False
     while not button_flag:  # 返回招募界面
         active.click(BLANK_AREA_COORD_MAP[0], BLANK_AREA_COORD_MAP[1])  # 点击空白区域跳过
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         print('查找是否退出到招募券界面')
         button_flag, cor = main_start.ocr_process(ocr_model, img_origin, '初始招募')
-        time.sleep(0.5)
+        time.sleep(2)
+
+    del img_origin
+    gc.collect()
 
 
 def handle_quit(recruit_cor, ocr_model, quit_img):
@@ -242,36 +270,47 @@ def handle_quit(recruit_cor, ocr_model, quit_img):
     flag_quit = False
     while not flag_quit:  # 等待选择干员界面
         active.click(recruit_cor[0], recruit_cor[1])  # 点击确认招募券
-        img_origin = connect.screen_shot(r'rogue/aaa.png')  # 继续寻找
+        img_origin = connect.screen_shot()  # 继续寻找
         print('查找是否进入招募界面')
         flag_quit, cor_quit = main_start.ocr_process(ocr_model, img_origin, '放弃')  # 寻找放弃按钮
         if flag_quit:
             break
         time.sleep(1)
+
+    del img_origin
+    gc.collect()
+
     cor_quit = targetMatch.find_center_coordinate(cor_quit)
     print('点击放弃招募')
     active.click(cor_quit[0], cor_quit[1])  # 点击放弃招募券
     time.sleep(2)  # 等待弹出确认框
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    img_origin = connect.screen_shot()
     print('开始寻找放弃确认按钮')
     _, cor_quit_enter = targetMatch.img_Match(quit_img, img_origin)  # 匹配**********************
     active.click(cor_quit_enter[0], cor_quit_enter[1])  # 点击放弃招募券
+
+    del img_origin
+    gc.collect()
 
     button_flag = False
     while not button_flag:  # 返回招募界面
         time.sleep(1)
         active.click(BLANK_AREA_COORD_MAP[0], BLANK_AREA_COORD_MAP[1])  # 点击空白区域跳过
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         print('查找是否退出到招募券界面')
         button_flag, cor = main_start.ocr_process(ocr_model, img_origin, '初始招募')
+
+    del img_origin
+    gc.collect()
 
     return cor_quit, cor_quit_enter
 
 
-def wear_equipment(ocr):
+def wear_equipment(ocr, img_map_check):
     """
     装备移动工具
     :param ocr: 文字识别模块
+    :param img_map_check: 检查是否回到主界面特征图像 rogue_blackflow/map_check.png
     :return: None
     """
 
@@ -282,7 +321,7 @@ def wear_equipment(ocr):
     flag = False  # 结构性原理标志位
     while not flag:
         print('点击行动力道具')
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         flag, cor = main_start.ocr_process(ocr, img_origin, '结构性原理')
         if flag:
             center = targetMatch.find_center_coordinate(cor)
@@ -291,12 +330,18 @@ def wear_equipment(ocr):
 
         time.sleep(1)
 
+    del img_origin
+    gc.collect()
+
     active.click(BLANK_AREA_COORD_MAP[0], BLANK_AREA_COORD_MAP[1])  # 点击空白区域跳过，退出到地图主界面
     flag = False
     while not flag:
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
-        flag, cor = main_start.ocr_process(ocr, img_origin, '行动力')
+        img_origin = connect.screen_shot()
+        flag, cor = targetMatch.img_Match(img_map_check, img_origin)
         time.sleep(1)
+
+    del img_origin
+    gc.collect()
 
     time.sleep(1)
 
@@ -372,11 +417,12 @@ def find_nearest_node(creat_ocr, img, target_nodes, exclude_nodes=None):
     return None, None
 
 
-def handle_rogue_graph(creat_ocr, event_quit_img, target_node_type='诡意行商'):
+def handle_rogue_graph(creat_ocr, event_quit_img, img_map_check, target_node_type='诡意行商'):
     """
     处理肉鸽地图节点选择
     :param creat_ocr: OCR模型
     :param event_quit_img: 事件退出图片 event_quit.png
+    :param img_map_check: 检查是否回到主界面特征图像 rogue_blackflow/map_check.png
     :param target_node_type: 目标节点类型 '诡意行商' 或 '未知的诡秘'
     :return: None
     """
@@ -395,6 +441,9 @@ def handle_rogue_graph(creat_ocr, event_quit_img, target_node_type='诡意行商
             visited_nodes
         )
 
+        del img
+        gc.collect()
+
         if node_center is None:
             print('未找到目标节点')
             break
@@ -404,27 +453,37 @@ def handle_rogue_graph(creat_ocr, event_quit_img, target_node_type='诡意行商
         active.click(node_center[0], node_center[1])  # 点击节点
         time.sleep(1)
 
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         node_flag, cor = main_start.ocr_process(creat_ocr, img_origin, '出发前往')
         center = targetMatch.find_center_coordinate(cor)
         active.click(center[0], center[1])  # 点击出发
+        time.sleep(1.5)
+
+        del img_origin
+        gc.collect()
 
         leave_flag = False
         while not leave_flag:
             active.click(BLANK_AREA_COORD_MAP[0], BLANK_AREA_COORD_MAP[1])  # 点击空白区域跳过
-            img_origin = connect.screen_shot(r'rogue/aaa.png')
+            img_origin = connect.screen_shot()
             leave_flag, cor = main_start.ocr_process(creat_ocr, img_origin, '玻利瓦尔肤层')
             time.sleep(1)
         time.sleep(1)
 
-        # 诡意行商：1   秘境行商：2  不期而遇：3  先行一步：
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        del img_origin
+        gc.collect()
+
+        # 诡意行商：1   秘境行商：2  得偿所愿：3  险路尽头：4  不期而遇：5：
+        img_origin = connect.screen_shot()
         event_flag1, _ = main_start.ocr_process(creat_ocr, img_origin, '前瞻性投资系统')  # 诡意行商
         event_flag2, _ = main_start.ocr_process(creat_ocr, img_origin, '开始培育')  # 秘境行商
         event_flag3, _ = main_start.ocr_process(creat_ocr, img_origin, '无人商店')  # 得偿所愿
         event_flag4, _ = main_start.ocr_process(creat_ocr, img_origin, '离开黑池')  # 险路尽头
         event_flag5, _ = main_start.ocr_process(creat_ocr, img_origin, '三重身')  # 险路小径
         # 先行一步↑ ###
+
+        del img_origin
+        gc.collect()
 
         if event_flag1:
             event_state = 1  # 诡意行商
@@ -445,7 +504,7 @@ def handle_rogue_graph(creat_ocr, event_quit_img, target_node_type='诡意行商
             handle_gu_yi_event(creat_ocr)
             break  # 完成诡意行商后退出
         else:
-            handle_other_event(creat_ocr, event_state, event_quit_img)
+            handle_other_event(creat_ocr, event_state, event_quit_img, img_map_check)
             continue
 
 
@@ -458,7 +517,7 @@ def handle_gu_yi_event(creat_ocr):
     print('点击当前余额')
     flag = False
     while not flag:
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         flag, cor = main_start.ocr_process(creat_ocr, img_origin, '当前余额')
         del img_origin
         gc.collect()
@@ -467,8 +526,11 @@ def handle_gu_yi_event(creat_ocr):
     active.click(cor[0], cor[1])
     time.sleep(1)
 
+    del img_origin
+    gc.collect()
+
     print('点击投资入口')
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    img_origin = connect.screen_shot()
     _, cor = main_start.ocr_process(creat_ocr, img_origin, '投资入口')
     del img_origin
     gc.collect()
@@ -477,7 +539,7 @@ def handle_gu_yi_event(creat_ocr):
     time.sleep(1)
 
     print('点击确认投资')
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    img_origin = connect.screen_shot()
     _, cor = main_start.ocr_process(creat_ocr, img_origin, '确认投资')
     del img_origin
     gc.collect()
@@ -491,7 +553,7 @@ def handle_gu_yi_event(creat_ocr):
         time.sleep(0.5)
         active.click(cor[0], cor[1])
         time.sleep(0.8)
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         flag1, _ = main_start.ocr_process(creat_ocr, img_origin, '投资受限')
         flag2, _ = main_start.ocr_process(creat_ocr, img_origin, '源石锭不足')
         if flag1:
@@ -506,105 +568,149 @@ def handle_gu_yi_event(creat_ocr):
     print('投资完成')
 
 
-def handle_other_event(creat_ocr, event_state, event_quit_img):
+def handle_other_event(creat_ocr, event_state, event_quit_img, img_map_check):
     """
     处理其他事件（秘境行商、不期而遇等）
+    :param creat_ocr: Paddle
+    :param event_state: 事件类型{诡意行商：1   秘境行商：2  得偿所愿：3  险路尽头：4  不期而遇：5}
+    :param event_quit_img:离开匹配图片 rogue_blackflow\event_quit.png
+    :param img_map_check: 返回地图匹配图片 rogue_blackflow/map_check.png
+    :return:
     """
     print('进入其他事件')
     # TODO: 编写其他事件处理逻辑
     time.sleep(1)
     if event_state == 2:
         print('秘境行商')
-        mystery_store(creat_ocr)
+        mystery_store(creat_ocr, img_map_check)
 
     if event_state == 3:
         print('得偿所愿')
-        achievement(creat_ocr)
+        achievement(creat_ocr, img_map_check)
 
     if event_state == 4:
         print('险路尽头 或 险路小径')
-        path_end(event_quit_img, creat_ocr)
+        path_end(event_quit_img, creat_ocr, img_map_check)
 
     if event_state == 5:
         print('不期而遇')
-        event(event_quit_img, creat_ocr)
+        event(event_quit_img, creat_ocr, img_map_check)
 
 
-def mystery_store(ocr):
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+def mystery_store(ocr, img_map_check):
+    """
+    :param ocr:
+    :param img_map_check: 检查是否回到主界面特征图像 rogue_blackflow/map_check.png
+    :return: None
+    """
+    img_origin = connect.screen_shot()
     _, cor0 = main_start.ocr_process(ocr, img_origin, '离开')
     cor0 = targetMatch.find_center_coordinate(cor0)
     active.click(cor0[0], cor0[1])
     time.sleep(1)
 
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    del img_origin
+    gc.collect()
+
+    img_origin = connect.screen_shot()
     _, cor0 = main_start.ocr_process(ocr, img_origin, '确认离开')
     cor0 = targetMatch.find_center_coordinate(cor0)
     active.click(cor0[0], cor0[1])
     time.sleep(1)
 
+    del img_origin
+    gc.collect()
+
     flag = False
     while not flag:
         print('查看是否返回地图')
+        img_origin = connect.screen_shot()
         active.click(BLANK_AREA_COORD_EVENT[0], BLANK_AREA_COORD_EVENT[1])
-        flag, cor0 = main_start.ocr_process(ocr, img_origin, '行动力')
+        flag, cor = targetMatch.img_Match(img_map_check, img_origin)
+        if flag:
+            break
         time.sleep(1)
 
+    del img_origin
+    gc.collect()
 
-def achievement(ocr):
+
+def achievement(ocr, img_map_check):
+    """
+    :param ocr: Paddle
+    :param img_map_check: 检查是否回到主界面特征图像 rogue_blackflow/map_check.png
+    :return: None
+    """
     flag1 = False
     while not flag1:
         active.click(1440, 540)
         time.sleep(1)
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
-        flag1, cor0 = main_start.ocr_process(ocr, img_origin, '你确定要这么做')
+        img_origin = connect.screen_shot()
+        flag1, cor0 = main_start.ocr_process(ocr, img_origin, '确定这么做')
         if flag1:
             cor0 = targetMatch.find_center_coordinate(cor0)
             active.click(cor0[0], cor0[1])
             break
 
+    del img_origin
+    gc.collect()
+
     flag = False
     while not flag:
         print('查看是否返回地图')
         active.click(BLANK_AREA_COORD_EVENT[0], BLANK_AREA_COORD_EVENT[1])
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
-        flag, cor0 = main_start.ocr_process(ocr, img_origin, '行动力')
+        img_origin = connect.screen_shot()
+        flag, cor = targetMatch.img_Match(img_map_check, img_origin)
         if flag:
             break
         time.sleep(1)
 
+    del img_origin
+    gc.collect()
 
-def path_end(event_quit_img, ocr):
+
+def path_end(event_quit_img, ocr, img_map_check):
     """
     :param event_quit_img:  event_quit.png
     :param ocr: 文字识别ocr
+    :param img_map_check: 检查是否回到主界面特征图像 rogue_blackflow/map_check.png
     :return:  None
     """
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    img_origin = connect.screen_shot()
     flag, cor = targetMatch.img_Match(event_quit_img, img_origin)
     active.click(cor[0], cor[1])
     time.sleep(1)
 
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    del img_origin
+    gc.collect()
+
+    img_origin = connect.screen_shot()
     _, cor0 = main_start.ocr_process(ocr, img_origin, '确定这么做')
     cor0 = targetMatch.find_center_coordinate(cor0)
     active.click(cor0[0], cor0[1]+20)
 
+    del img_origin
+    gc.collect()
+
     flag = False
     while not flag:
         print('查看是否返回地图')
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         active.click(BLANK_AREA_COORD_EVENT[0], BLANK_AREA_COORD_EVENT[1])
-        flag, cor0 = main_start.ocr_process(ocr, img_origin, '行动力')
+        flag, cor = targetMatch.img_Match(img_map_check, img_origin)
         if flag:
             break
         time.sleep(1)
 
+    del img_origin
+    gc.collect()
 
-def event(event_quit_img, ocr):
+
+def event(event_quit_img, ocr, img_map_check):
     """
     :param event_quit_img:  event_quit.png
     :param ocr: 文字识别ocr
+    :param img_map_check: 检查是否回到主界面特征图像 rogue_blackflow/map_check.png
     :return: None
     """
     # 不期而遇事件字典，键key位为事件名称，值value为选项名称
@@ -613,36 +719,61 @@ def event(event_quit_img, ocr):
                   '思乡心切': '多一事不如少一事'
                   }
 
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    img_origin = connect.screen_shot()
     flag1, cor1 = main_start.ocr_process(ocr, img_origin, '多一事不如少一事')
     flag2, cor2 = main_start.ocr_process(ocr, img_origin, '离开')
     flag3, cor3 = main_start.ocr_process(ocr, img_origin, '唱一首摇篮曲')
 
-    if flag1 or flag2:
-        print('直接离开事件')
-        f, center = targetMatch.img_Match(event_quit_img, img_origin)
-        active.click(center[0], center[1])
+    del img_origin
+    gc.collect()
+
+    print('1', flag1, cor1, end=';')
+    print('2', flag2, cor2, end=';')
+    print('3', flag3, cor3)
+
+    flag_do = False
+    while not flag_do:
+        if flag1 :
+            print('直接离开事件')
+            center = targetMatch.find_center_coordinate(cor1)
+            active.click(center[0], center[1])
+        elif flag2:
+            print('直接离开事件')
+            center = targetMatch.find_center_coordinate(cor2)
+            active.click(center[0], center[1])
+        elif flag3:
+            print('奖励事件')
+            center = targetMatch.find_center_coordinate(cor3)
+            active.click(center[0] + 100, center[1] + 50)
+
         time.sleep(1)
-    elif flag3:
-        print('奖励事件')
-        center = targetMatch.find_center_coordinate(cor1)
-        active.click(center[0] + 100, center[1] + 50)
+        # 检查是否点击成功
+        print('检查是否点击成功')
+        img_origin = connect.screen_shot()
+        flag_do, cor0 = main_start.ocr_process(ocr, img_origin, '确定这么做')
+        if flag_do:
+            break
 
-    # 退出事件
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
-    _, cor0 = main_start.ocr_process(ocr, img_origin, '确定这么做')
-    cor0 = targetMatch.find_center_coordinate(cor0)
-    active.click(cor0[0], cor0[1] + 20)
+    del img_origin
+    gc.collect()
 
+    # 点击退出确定按钮
+    cor0_center = targetMatch.find_center_coordinate(cor0)
+    active.click(cor0_center[0], cor0_center[1] + 20)
+
+    # 退出等待
     flag = False
     while not flag:
         print('查看是否返回地图')
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         active.click(BLANK_AREA_COORD_EVENT[0], BLANK_AREA_COORD_EVENT[1])
-        flag, cor0 = main_start.ocr_process(ocr, img_origin, '行动力')
+        flag, cor = targetMatch.img_Match(img_map_check, img_origin)
         if flag:
             break
         time.sleep(1)
+
+    del img_origin
+    gc.collect()
 
 
 def exit_game(img_exit, img_quit_enter, img_game_over, ocr, height, width):
@@ -655,25 +786,34 @@ def exit_game(img_exit, img_quit_enter, img_game_over, ocr, height, width):
     :param width: 宽
     :return: None
     """
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    img_origin = connect.screen_shot()
     flag, cor = targetMatch.img_Match(img_exit, img_origin)
     active.click(cor[0], cor[1])
     time.sleep(1)
 
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    del img_origin
+    gc.collect()
+
+    img_origin = connect.screen_shot()
     _, cor0 = main_start.ocr_process(ocr, img_origin, '放弃本次探索')
     cor0 = targetMatch.find_center_coordinate(cor0)
     active.click(cor0[0], cor0[1])
     time.sleep(1)
 
-    img_origin = connect.screen_shot(r'rogue/aaa.png')
+    del img_origin
+    gc.collect()
+
+    img_origin = connect.screen_shot()
     flag, cor = targetMatch.img_Match(img_quit_enter, img_origin)
     active.click(cor[0], cor[1])
     time.sleep(1)
 
+    del img_origin
+    gc.collect()
+
     while True:
         # 截图
-        img_origin = connect.screen_shot(r'rogue/aaa.png')
+        img_origin = connect.screen_shot()
         active.click(int(height / 2), int(width / 2))
         time.sleep(1)
 
@@ -700,6 +840,9 @@ def exit_game(img_exit, img_quit_enter, img_game_over, ocr, height, width):
             print('匹配到人物升级')
             cor1_center = targetMatch.find_center_coordinate(cor1)
             active.click(cor1_center[0], cor1_center[1])
+
+    del img_origin
+    gc.collect()
 
 
 """=============================地图逻辑处理部分↑============================="""
